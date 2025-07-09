@@ -1,0 +1,330 @@
+#include<iostream>
+#include<string>
+#include<chrono>
+#include<thread>
+#include<atomic>
+#include<cmath>
+#include<vector>
+#include<map>
+#include<algorithm>
+#include <ctime>
+#define RESET   "\033[0m"
+#define RED     "\033[1;31m"
+#define BLUE    "\033[1;34m"
+
+using namespace std;
+
+const int SIZE = 10;
+int redX = 9, redY = 6;
+int blueX = 9, blueY = 4;
+int stoneRedX = 9, stoneRedY = 0;
+int stoneBlueX = 9, stoneBlueY = 9;
+
+bool RedRockDead = false;
+bool RedStoneDead = false;
+bool BlueRockDead = false;
+bool BlueStoneDead = false;
+
+void try_spawn(char board[SIZE][SIZE]){
+    if(RedRockDead && board[9][6] == '.'){
+        board[9][6] = 'R';
+        redX = 9;
+        redY = 6;
+        RedRockDead = false;
+    }
+    else if(BlueRockDead && board[9][4] == '.'){
+        board[9][4] = 'r';
+        blueX = 9;
+        blueY = 4;
+        BlueRockDead = false;  
+    }
+    else if(RedStoneDead && board[9][0] == '.'){
+        board[9][0] = 'S';
+        stoneRedX = 9;
+        stoneRedY = 0;
+        RedStoneDead = false;  
+    }
+    else if(BlueStoneDead && board[9][9] == '.'){
+        board[9][9] = 's';
+        stoneBlueX = 9;
+        stoneBlueY = 9;
+        BlueStoneDead = false;  
+    }
+    
+}
+
+void print_board(char board[SIZE][SIZE]){
+    cout<<"  0 1 2 3 4 5 6 7 8 9\n";
+    for(int i = 0; i<SIZE; i++){
+        cout<<i<<" ";
+         for(int j = 0; j<SIZE; j++){
+             if(board[i][j] == 'r' || board[i][j] == 's')
+                cout << BLUE << board[i][j] << RESET <<" ";
+             else if(board[i][j] == 'R' || board[i][j] == 'S') 
+                cout << RED << board[i][j]
+                 << RESET<< " ";
+             else cout<<board[i][j]<<" ";
+          }   
+        cout<<endl;
+    }    
+} 
+
+bool is_valid_stone(int x, int y, char board[SIZE][SIZE]){    
+    return x>=0 && x < SIZE && y>=0 && y < SIZE;
+}
+
+bool is_valid_rock(int x, int y, char board[SIZE][SIZE]){
+   return x >= 0 && y >= 0 && x < SIZE && y < SIZE 
+       && board[x][y] != 'O'; 
+}
+
+bool attack(char player, int x, int y, char board[SIZE][SIZE]){
+    if(player == 'R' || player == 'S'){
+        return x >= 0 && y >= 0 && x < SIZE && y < SIZE && (board[x][y] == 'r' 
+            || board[x][y] == 's');
+    }
+    else if(player == 'r' || player == 's'){
+        return x >= 0 && y >= 0 && x < SIZE && y < SIZE && (board[x][y] == 'R' 
+                || board[x][y] == 'S');
+    }
+    else return false;
+}
+
+void rock_move(char player, int &posX, int &posY, char board[SIZE][SIZE]){
+    string move;
+    int step;
+
+    cout<<(player == 'R' 
+    ? string(RED) + "Red Turns\n" + RESET 
+    : string(BLUE) + "Blue Turns\n" + RESET); 
+
+            while(true){
+        
+            cout<<"Enter lhd(left horizon down) or rhd(right horizonvdown) or lhu(left horizon up) or rhu(right horizon up): ";
+            cin>>move;
+            cout<<"Enter How Much Step: ";
+            cin>>step;
+            cout<<"\n";
+        
+            int dx = 0, dy = 0;
+            if(move == "lhd"){
+                dx += step;
+                dy -= step;
+            }
+            else if(move == "rhd"){
+                dx += step;        
+                dy += step;
+            }
+            else if(move == "lhu"){
+                dx -= step;        
+                dy -= step;
+            }
+            else if(move == "rhu"){
+                dx -= step;        
+                dy += step;
+            }
+        
+            int nx = 0, ny = 0;
+            nx = posX + dx;
+            ny = posY + dy;
+        
+            if(is_valid_rock(nx, ny, board)){
+                if(attack(player, nx, ny, board)){
+                    char opponent;
+                    opponent = board[nx][ny];
+                  
+                    board[posX][posY] = '.';        
+                    posX = nx;
+                    posY = ny;
+                    board[posX][posY] = player;
+
+                    if(opponent == 'R') RedRockDead = true;
+                    else if(opponent == 'r') BlueRockDead = true;
+                    else if(opponent == 'S') RedStoneDead = true;
+                    else if(opponent == 's') BlueStoneDead = true;
+                    
+                    break;
+                    
+                }
+                else{
+                    board[posX][posY] = '.';        
+                    posX = nx;
+                    posY = ny;
+                    board[posX][posY] = player;
+                    
+                }    
+            break;
+            }
+            else cout<<"Invalid Move\n";        
+            }    
+    
+        }
+
+void stone_move(char player, int &posX, int &posY, char board[SIZE][SIZE]){
+    char move;
+    int step;
+    
+    cout<<(player == 'S' 
+        ? string(RED) + "Red Turns\n" + RESET 
+        : string(BLUE) + "Blue Turns\n" + RESET); 
+    
+    while(true){
+        cout<<"Enter Move(w/a/s/d): ";
+        cin>>move;
+        cout<<"Enter How Many Step: ";
+        cin>>step;
+        
+        int dx = 0, dy = 0;
+        if(move == 'w') dx -= step;
+        else if(move == 'a') dy -= step;
+        else if(move == 's') dx += step;
+        else if(move == 'd') dy += step;
+
+        int nx = 0, ny = 0;
+        nx = posX + dx;
+        ny = posY + dy;
+
+        if(is_valid_stone(nx, ny, board) && (board[nx][ny] != 'O')){
+            if(attack(player, nx, ny, board)){
+                char opponent;
+                opponent = board[nx][ny];
+
+                board[posX][posY] = '.';        
+                posX = nx;
+                posY = ny;
+                board[posX][posY] = player;
+
+                if(opponent == 'R') RedRockDead = true;
+                else if(opponent == 'r') BlueRockDead = true;
+                else if(opponent == 'S') RedStoneDead = true;
+                else if(opponent == 's') BlueStoneDead = true;
+
+                break;
+            }
+                
+            else{
+                board[posX][posY] = '.';
+                posX = nx;
+                posY = ny;
+    
+                board[posX][posY] = player;
+            }
+                break;
+        }    
+        else cout<<"Invalid Move\n";        
+    
+}
+}    
+
+bool check_for_red(char board[SIZE][SIZE], int optionred){
+    if(optionred == 1)
+        return board[redX][redY] == 'R';
+    else if(optionred == 2)
+        return board[stoneRedX][stoneRedY] == 'S';
+    else return false;
+}
+
+bool check_for_blue(char board[SIZE][SIZE], int optionblue){
+    if(optionblue == 1)
+        return board[blueX][blueY] == 'r';
+    else if(optionblue == 2)
+        return board[stoneBlueX][stoneBlueY] == 's';
+    else return false;
+}    
+    
+
+int main(){
+
+    char board[SIZE][SIZE];
+    int option, optionred, optionblue;
+    
+    for(int i = 0; i<SIZE; i++){
+        for(int j = 0; j<SIZE; j++){
+            board[i][j] = '.';            
+        }
+    }
+    board[redX][redY] = 'R';
+    board[blueX][blueY] = 'r';
+    board[stoneRedX][stoneRedY] = 'S';
+    board[stoneBlueX][stoneBlueY] = 's';
+    board[3][3] = 'F';
+    board[2][1] = 'O';
+    board[5][2] = 'O';
+    board[3][7] = 'O';
+    board[4][5] = 'O';
+    board[0][6] = 'O';
+
+    cout<<"=== Welcome to Rock Race Game ===\n";
+    cout<<"1. Play\n";
+    cout<<"2. Quit\n";
+    cout<<"=================================\n";
+
+    cout<<"Enter 1-2: ";
+    cin>>option;
+
+    switch(option){
+        case 1:
+            while(true){
+                print_board(board);
+                cout<<RED <<"Red Turns\n" <<RESET;
+                
+                while(true){
+                    cout<<"Choose Rock(1) or Stone(2): ";
+                    cin>>optionred;
+                    
+                    if(check_for_red(board, optionred)){
+                        if(optionred == 1){
+                            rock_move('R', redX, redY, board);
+                        }
+                        else if(optionred == 2){
+                            stone_move('S', stoneRedX, stoneRedY, board);
+                        }
+                    break;
+                    }                  
+                    else cout<<"Your Option is not on the Board\n";
+                }
+                
+                if((redX == 3 && redY == 3) || (stoneRedX == 3 && stoneRedY == 3)){
+                    cout<<"Red Won the Game\n";
+                    return 0;
+                }
+                
+                try_spawn(board);
+                
+                print_board(board);
+                cout<<BLUE <<"Blue Turns\n" <<RESET;
+
+                while(true){
+                    cout<<"Choose Rock(1) or Stone(2): ";
+                    cin>>optionblue;
+                    if(check_for_blue(board, optionblue)){
+                        if(optionblue == 1){
+                            rock_move('r', blueX, blueY, board);
+                        }
+                        else if(optionblue == 2){
+                            stone_move('s', stoneBlueX, stoneBlueY, board);
+                        }
+                    break;
+                    }                  
+                    else cout<<"Your Option is not on the Board\n";
+                }
+
+                if((blueX == 3 && blueY == 3) || (stoneBlueX == 3 && stoneBlueY == 3)){
+                    cout<<"Blue Won the Game\n";
+                    return 0;
+                }
+            try_spawn(board);
+            }    
+                break;
+
+        case 2:
+            return 0;
+
+    }
+
+
+
+    
+    return 0;
+}
+
